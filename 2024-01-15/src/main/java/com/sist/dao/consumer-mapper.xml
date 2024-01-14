@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PreparedStatement/ResultSet  CRUD -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sist.dao.consumer-mapper">
+
+  <select id="consumerListData" resultType="ConsumerVO" parameterType="hashmap">
+    SELECT no,subject,name,TO_CHAR(regdate,'YYYY-MM-DD') as dbday,hit,num
+    FROM (SELECT no,subject,name,regdate,hit,rownum as num 
+    FROM (SELECT /*+ INDEX_DESC(CONSUMER_CENTER pd_no_pk)*/no,subject,name,regdate,hit 
+    FROM CONSUMER_CENTER))
+    WHERE num BETWEEN #{start} AND #{end}
+  </select>
+
+   <select id="consumerRowCount" resultType="int">
+     SELECT COUNT(*) FROM CONSUMER_CENTER
+   </select>
+   <!-- 
+        ${} => ''없이 추가 , #{} => ''
+        table명, column명
+    -->
+   <insert id="consumerInsert" parameterType="ConsumerVO">
+    <selectKey keyProperty="no" resultType="int" order="BEFORE">
+      SELECT NVL(MAX(no)+1,1) as no FROM CONSUMER_CENTER
+    </selectKey>
+    INSERT INTO CONSUMER_CENTER VALUES(
+      #{no},#{name},#{subject},#{content},#{pwd},
+      SYSDATE,0,#{filename},#{filesize}
+    )
+   </insert>
+   <!-- 중복 SQL문장을 제거 -->
+   <sql id="where-no">
+    WHERE no=#{no}
+   </sql>
+   <update id="consumerHitIncrement" parameterType="int">
+     UPDATE CONSUMER_CENTER SET
+     hit=hit+1
+     <include refid="where-no"/>
+   </update>
+   <select id="consumerDetailData" resultType="ConsumerVO" parameterType="int">
+     SELECT no,subject,name,TO_CHAR(regdate,'YYYY-MM-DD')as dbday,hit,content
+     FROM CONSUMER_CENTER
+     <include refid="where-no"/>
+   </select>
+   <select id="consumerFileInfoData" resultType="ConsumerVO" parameterType="int">
+     SELECT filename,filesize
+     FROM CONSUMER_CENTER
+     <include refid="where-no"/>
+   </select>
+   <select id="consumerGetPassword" resultType="string" parameterType="int">
+     SELECT pwd FROM CONSUMER_CENTER
+     <include refid="where-no"/>
+   </select>
+   <delete id="consumerDelete" parameterType="int">
+     DELETE FROM CONSUMER_CENTER
+     <include refid="where-no"/>
+   </delete>
+   <update id="consumerUpdate" parameterType="ConsumerVO">
+     UPDATE CONSUMER_CENTER SET
+     name=#{name},subject=#{subject},content=#{content}
+     <include refid="where-no"/>
+   </update>
+</mapper>
